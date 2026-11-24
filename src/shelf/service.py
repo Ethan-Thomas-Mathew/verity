@@ -154,3 +154,11 @@ def reset_database(engine: Engine) -> None:
     Base.metadata.create_all(engine)
     with Session(engine) as session, session.begin():
         session.add_all(Book(title=t, author=a, available_copies=c) for t, a, c in SEED_BOOKS)
+
+
+def seed_if_empty(engine: Engine) -> None:
+    """Create the tables and load the seed books on first start."""
+    Base.metadata.create_all(engine)
+    with Session(engine) as session, session.begin():
+        if session.scalar(select(func.count()).select_from(Book)) == 0:
+            session.add_all(Book(title=t, author=a, available_copies=c) for t, a, c in SEED_BOOKS)

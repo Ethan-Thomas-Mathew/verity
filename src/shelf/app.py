@@ -14,8 +14,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from shelf.bugs import BugSet
-from shelf.models import Base, Book, Loan
-from shelf.service import Conflict, Invalid, LibraryService, LoanView, NotFound, reset_database
+from shelf.models import Book, Loan
+from shelf.service import (
+    Conflict,
+    Invalid,
+    LibraryService,
+    LoanView,
+    NotFound,
+    reset_database,
+    seed_if_empty,
+)
 
 TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
@@ -105,7 +113,7 @@ def create_app(settings: ShelfSettings | None = None) -> FastAPI:
     settings = settings or ShelfSettings()
     bugs = BugSet.parse(settings.bugs)
     engine = create_engine(settings.database_url, pool_pre_ping=True)
-    Base.metadata.create_all(engine)
+    seed_if_empty(engine)
     make_session = sessionmaker(engine, expire_on_commit=False)
 
     app = FastAPI(title="Shelf", description="Sample library app with planted bugs.")
