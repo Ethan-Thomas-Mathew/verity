@@ -1,0 +1,75 @@
+# Every port is bound to 127.0.0.1: nothing here has a login, so nothing is
+# reachable from other machines on the network.
+name: verity
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: verity
+      POSTGRES_PASSWORD: verity
+      POSTGRES_DB: verity
+    ports:
+      # 5433, not 5432, so it does not clash with a Postgres already on the machine.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verity -d verity"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  shelf:
+    build: .
+    command: ["python", "-m", "shelf"]
+    environment:
+      SHELF_DATABASE_URL: postgresql+psycopg://verity:verity@postgres:5432/shelf
+      SHELF_BUGS: ${SHELF_BUGS:-all}
+      SHELF_TEST_MODE: "true"
+      SHELF_HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      VERITY_DATABASE_URL: postgresql+psycopg://verity:verity@postgres:5432/verity
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build: .
+    profiles: ["full"]
+    environment:
+      VERITY_DATABASE_URL: postgresql+psycopg://verity:verity@postgres:5432/verity
+      VERITY_TARGET_URL: http://shelf:8001
+      VERITY_LLM_PROVIDER: ${VERITY_LLM_PROVIDER:-ollama}
+      VERITY_LLM_MODEL: ${VERITY_LLM_MODEL:-}
+      VERITY_OLLAMA_URL: ${VERITY_OLLAMA_URL:-http://host.docker.internal:11434}
+      VERITY_GEMINI_API_KEY: ${VERITY_GEMINI_API_KEY:-}
+      VERITY_OPENAI_API_KEY: ${VERITY_OPENAI_API_KEY:-}
+      VERITY_ANTHROPIC_API_KEY: ${VERITY_ANTHROPIC_API_KEY:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      shelf:
+        condition: service_healthy
+
+volumes:
+  pgdata:
