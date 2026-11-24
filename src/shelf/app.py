@@ -120,7 +120,10 @@ def create_app(settings: ShelfSettings | None = None) -> FastAPI:
                 session.rollback()
                 raise
 
-    Svc = Annotated[LibraryService, Depends(service)]
+    # scope="function" commits before the response is sent. With the default
+    # ("request") the commit ran after the client already had its 201, so a fast
+    # follow-up request could miss the row it had just created.
+    Svc = Annotated[LibraryService, Depends(service, scope="function")]
 
     @app.exception_handler(NotFound)
     def _not_found(_: Request, exc: NotFound) -> Response:
