@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Provider = Literal["ollama", "openai", "gemini", "anthropic", "replay"]
@@ -21,7 +21,7 @@ DEFAULT_MODELS: dict[Provider, str] = {
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VERITY_", env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://verity:verity@127.0.0.1:5432/verity"
+    database_url: str = "postgresql+psycopg://verity:verity@127.0.0.1:5433/verity"
 
     # Which language model the agents use. Ollama runs locally and needs no key.
     llm_provider: Provider = "ollama"
@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     run_ui_tests: bool = True
 
     requirements_dir: Path = Path("requirements/shelf")
+
+    @field_validator("openai_api_key", "gemini_api_key", "anthropic_api_key", mode="before")
+    @classmethod
+    def _blank_key_is_no_key(cls, value: object) -> object:
+        # Docker Compose passes unset keys as empty strings.
+        return None if value == "" else value
 
     @model_validator(mode="after")
     def _key_for_hosted_provider(self) -> "Settings":

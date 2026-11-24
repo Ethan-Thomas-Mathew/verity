@@ -137,3 +137,8 @@ def test_factory_wraps_with_recorder_and_builds_replay(tmp_path: Path) -> None:
     assert openai.name == "openai:x"
     claude = build_llm(Settings(llm_provider="anthropic", anthropic_api_key=SecretStr("k")))
     assert claude.name.startswith("anthropic:")
+
+
+def test_blank_keys_count_as_missing() -> None:
+    with pytest.raises(ValidationError, match="VERITY_OPENAI_API_KEY"):
+        Settings(llm_provider="openai", openai_api_key="")

@@ -23,7 +23,7 @@ TEMPLATES = Jinja2Templates(directory=Path(__file__).parent / "templates")
 class ShelfSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SHELF_", env_file=".env", extra="ignore")
 
-    database_url: str = "postgresql+psycopg://verity:verity@127.0.0.1:5432/shelf"
+    database_url: str = "postgresql+psycopg://verity:verity@127.0.0.1:5433/shelf"
     bugs: str = "all"
     # Enables POST /api/test/reset. Never on outside local testing.
     test_mode: bool = False

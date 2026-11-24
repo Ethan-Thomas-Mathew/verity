@@ -15,14 +15,14 @@ from verity.db.database import make_engine
 @pytest.fixture(scope="session")
 def shelf_db_url() -> str:
     return os.environ.get(
-        "TEST_SHELF_DATABASE_URL", "postgresql+psycopg://verity:verity@127.0.0.1:5432/shelf_test"
+        "TEST_SHELF_DATABASE_URL", "postgresql+psycopg://verity:verity@127.0.0.1:5433/shelf_test"
     )
 
 
 @pytest.fixture(scope="session")
 def verity_db_url() -> str:
     return os.environ.get(
-        "TEST_VERITY_DATABASE_URL", "postgresql+psycopg://verity:verity@127.0.0.1:5432/verity_test"
+        "TEST_VERITY_DATABASE_URL", "postgresql+psycopg://verity:verity@127.0.0.1:5433/verity_test"
     )
 
 
