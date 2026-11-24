@@ -24,7 +24,8 @@ class Section:
 @dataclass(frozen=True)
 class Retrieved:
     section: Section
-    # "exact": the story names this requirement. "semantic": found by vector search.
+    # "exact": named by the story. "semantic": found by vector search.
+    # "reference": always included (the API guide).
     match: str
     distance: float | None
 
@@ -83,27 +84,43 @@ def _section(chunk: Chunk) -> Section:
 
 
 def retrieve(
-    session: Session, embedder: Embedder, query: str, requirement_ids: list[str], k: int = 3
+    session: Session,
+    embedder: Embedder,
+    query: str,
+    requirement_ids: list[str],
+    k: int = 3,
+    reference_sources: tuple[str, ...] = ("api.md",),
 ) -> list[Retrieved]:
-    """Hybrid retrieval: every requirement the story names, plus the k closest other chunks.
+    """Hybrid retrieval for one story.
 
-    The story's requirement ids are exact facts, so those sections are fetched
-    by id. Vector search then finds context the story does not name, such as
-    the API reference for the endpoints those requirements use.
+    1. "exact": every requirement the story names, fetched by id.
+    2. "reference": every section of the reference documents (the API guide),
+       because no test can be written without knowing the endpoints.
+    3. "semantic": the k sections closest to the story by vector search, which
+       finds related requirements the story does not name (a late-fee story
+       also needs the loan period, for example).
     """
     exact = session.scalars(
         select(Chunk)
         .where(Chunk.embedder == embedder.name, Chunk.requirement_id.in_(requirement_ids))
         .order_by(Chunk.id)
     ).all()
+    reference = session.scalars(
+        select(Chunk)
+        .where(Chunk.embedder == embedder.name, Chunk.source.in_(reference_sources))
+        .order_by(Chunk.id)
+    ).all()
+    taken = [c.id for c in [*exact, *reference]]
     query_vector = embedder.embed([query])[0]
     distance = Chunk.embedding.cosine_distance(query_vector)
     nearest = session.execute(
         select(Chunk, distance)
-        .where(Chunk.embedder == embedder.name, Chunk.id.not_in([c.id for c in exact]))
+        .where(Chunk.embedder == embedder.name, Chunk.id.not_in(taken))
         .order_by(distance)
         .limit(k)
     ).all()
-    return [Retrieved(_section(c), "exact", None) for c in exact] + [
-        Retrieved(_section(c), "semantic", float(d)) for c, d in nearest
-    ]
+    return (
+        [Retrieved(_section(c), "exact", None) for c in exact]
+        + [Retrieved(_section(c), "semantic", float(d)) for c, d in nearest]
+        + [Retrieved(_section(c), "reference", None) for c in reference]
+    )

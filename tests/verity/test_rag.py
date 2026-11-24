@@ -43,9 +43,12 @@ def test_retrieve_returns_named_requirements_then_nearest_context(
         )
     exact = [r.section.requirement_id for r in found if r.match == "exact"]
     semantic = [r for r in found if r.match == "semantic"]
+    reference = [r.section.heading for r in found if r.match == "reference"]
     assert exact == ["REQ-LOAN-1", "REQ-LOAN-3"]
     assert len(semantic) == 2
     assert all(r.section.requirement_id not in exact for r in semantic)
+    assert all(r.section.source != "api.md" for r in semantic)
+    assert "Test setup" in reference and "Loans" in reference
     assert semantic[0].distance is not None and semantic[0].distance <= semantic[1].distance  # type: ignore[operator]
 
 
