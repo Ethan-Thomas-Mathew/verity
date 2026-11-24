@@ -227,3 +227,24 @@ def test_evaluation_scores_against_the_answer_key(
     assert report.note.startswith("Not a live model")
     markdown = save(report, tmp_path).read_text()
     assert "Planted bugs found: **2/3**" in markdown
+
+
+def test_exports_survive_quotes_in_titles_and_values() -> None:
+    tricky = ApiTest.model_validate(
+        {
+            "requirement_id": "REQ-BOOK-1",
+            "title": 'Search for "Ender\'s Game" """',
+            "steps": [
+                {
+                    "method": "GET",
+                    "path": "/api/books",
+                    "params": {"q": "Ender's"},
+                    "expect": {"status": 200, "fields": {"0.title": "Ender's Game"}},
+                }
+            ],
+        }
+    )
+    compile(pytest_module([tricky], []), "x.py", "exec")
+    collection = postman_collection([tricky], "http://x")
+    script = collection["item"][0]["item"][1]["event"][0]["script"]["exec"]
+    assert any("Ender's Game" in line and line.startswith('pm.test("0.title') for line in script)

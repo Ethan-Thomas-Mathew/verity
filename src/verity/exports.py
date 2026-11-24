@@ -33,17 +33,17 @@ def _postman_tests(step: ApiStep) -> list[str]:
     lines = [
         "const read = (data, path) => path.split('.').reduce("
         "(cur, key) => (cur == null ? undefined : cur[key]), data);",
-        f"pm.test('status is {step.expect.status}', () => "
+        f"pm.test({json.dumps(f'status is {step.expect.status}')}, () => "
         f"pm.response.to.have.status({step.expect.status}));",
     ]
     for path, value in step.expect.fields.items():
         lines.append(
-            f"pm.test('{path} is {json.dumps(value)}', () => "
+            f"pm.test({json.dumps(f'{path} is {json.dumps(value)}')}, () => "
             f"pm.expect(read(pm.response.json(), {json.dumps(path)})).to.eql({json.dumps(value)}));"
         )
     if step.expect.length is not None:
         lines.append(
-            f"pm.test('has {step.expect.length} items', () => "
+            f"pm.test({json.dumps(f'has {step.expect.length} items')}, () => "
             f"pm.expect(pm.response.json()).to.have.lengthOf({step.expect.length}));"
         )
     for name, path in step.save.items():
@@ -209,7 +209,7 @@ def pytest_module(api_tests: Iterable[ApiTest], ui_tests: Iterable[UiTest]) -> s
 
     for test in api_tests:
         out += ["", "", f"def {name_for(test)}(client: httpx.Client) -> None:"]
-        out += [f"    {line}" for line in [f'"""{test.title}"""', "saved: dict[str, Any] = {}"]]
+        out += [f"    {test.title!r}", "    saved: dict[str, Any] = {}"]
         out += _py_steps(test.steps, "    ")
     ui = list(ui_tests)
     if ui:
@@ -228,7 +228,7 @@ def pytest_module(api_tests: Iterable[ApiTest], ui_tests: Iterable[UiTest]) -> s
         ]
     for ui_test in ui:
         out += ["", "", f"def {name_for(ui_test)}(client: httpx.Client, page: Any) -> None:"]
-        out += [f'    """{ui_test.title}"""', "    from playwright.sync_api import expect", ""]
+        out += [f"    {ui_test.title!r}", "    from playwright.sync_api import expect", ""]
         out += ["    saved: dict[str, Any] = {}"]
         out += _py_steps(ui_test.setup, "    ")
         for action in ui_test.steps:
