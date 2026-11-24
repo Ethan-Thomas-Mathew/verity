@@ -5,7 +5,7 @@ description = "Multi-agent QA assistant: turns user stories into API and browser
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.121",
     "uvicorn[standard]>=0.32",
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
@@ -30,6 +30,7 @@ dev = [
 
 [project.scripts]
 verity = "verity.cli:main"
+shelf = "shelf.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -48,8 +49,9 @@ select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-packages = ["verity", "shelf"]
+files = ["src", "tests", "migrations"]
 mypy_path = "src"
+explicit_package_bases = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]

@@ -5,6 +5,7 @@ import uuid
 from datetime import UTC, datetime
 
 import httpx
+from playwright.sync_api import Error as PlaywrightError
 from sqlalchemy.orm import Session, sessionmaker
 
 from verity.agents.graph import Bug, Executed, State, Tools, build_graph
@@ -47,13 +48,15 @@ def execute_run(
     factory: sessionmaker[Session],
     llm: LLMClient,
     embedder: Embedder,
-    use_browser: bool = True,
+    use_browser: bool | None = None,
 ) -> None:
     """Run the agent graph for one story and store the results under `run_id`.
 
     Any exception marks the run as failed with its message, so a run never stays
     "running" forever and the caller can see why it stopped.
     """
+    if use_browser is None:
+        use_browser = settings.run_ui_tests
     with transaction(factory) as session:
         run = session.get_one(Run, run_id)
         run.status = "running"
@@ -94,9 +97,14 @@ def _invoke(
         def run_ui(tests: list[UiTest]) -> list[Result]:
             nonlocal ui
             if ui is None:  # start the browser only when a UI test actually runs
-                ui = stack.enter_context(
-                    UiRunner(api, settings.target_url, settings.browser_executable)
-                )
+                try:
+                    ui = stack.enter_context(
+                        UiRunner(api, settings.target_url, settings.browser_executable)
+                    )
+                except PlaywrightError as exc:
+                    # Keep the API results: the UI tests are marked as unable to run.
+                    reason = f"browser could not start: {str(exc).splitlines()[0]}"
+                    return [Result("error", reason) for _ in tests]
             return [ui.run(t) for t in tests]
 
         tools = Tools(

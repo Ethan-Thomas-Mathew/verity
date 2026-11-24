@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = 10.0
     # Leave unset to use the browser installed by `playwright install chromium`.
     browser_executable: str | None = None
+    run_ui_tests: bool = True
 
     requirements_dir: Path = Path("requirements/shelf")
 

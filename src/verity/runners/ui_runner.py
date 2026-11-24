@@ -78,6 +78,9 @@ class UiRunner:
                 page.get_by_label(target, exact=True).fill(value)
             case "click":
                 page.get_by_role("button", name=target).click()
+                # A click may submit a form. Wait for the next page, or a following
+                # expect_no_text could pass by checking the old page.
+                page.wait_for_load_state("networkidle")
             case "expect_text":
                 expect(page.locator("body")).to_contain_text(value, timeout=STEP_TIMEOUT_MS)
             case "expect_no_text":
