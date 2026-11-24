@@ -1,0 +1,14 @@
+{
+  "_note": "Answer key for the evaluation. Never given to the agents: it is not under requirements/ and is not indexed for retrieval.",
+  "bugs": {
+    "BUG-1": "REQ-LOAN-1",
+    "BUG-2": "REQ-BOOK-1",
+    "BUG-3": "REQ-LOAN-4",
+    "BUG-4": "REQ-LOAN-3",
+    "BUG-5": "REQ-FEE-1",
+    "BUG-6": "REQ-MEM-1",
+    "BUG-7": "REQ-UI-1",
+    "BUG-8": "REQ-LIST-1"
+  },
+  "clean_requirements": ["REQ-LOAN-2", "REQ-UI-2"]
+}

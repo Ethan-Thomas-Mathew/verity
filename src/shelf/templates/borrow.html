@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Borrow a book - Shelf{% endblock %}
+{% block content %}
+<h1>Borrow a book</h1>
+{% if message %}<p class="message" role="status">{{ message }}</p>{% endif %}
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/borrow">
+  <label for="member_id">Member ID</label>
+  <input id="member_id" name="member_id" inputmode="numeric" required>
+  <label for="book_id">Book ID</label>
+  <input id="book_id" name="book_id" inputmode="numeric" required>
+  <button type="submit">Borrow</button>
+</form>
+{% endblock %}

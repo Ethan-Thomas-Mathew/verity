@@ -1,0 +1,32 @@
+[
+  {
+    "key": "SHELF-1",
+    "summary": "Register as a member",
+    "description": "As a new reader, I want to register with my name and email, so that I can borrow books.",
+    "requirements": ["REQ-MEM-1"]
+  },
+  {
+    "key": "SHELF-2",
+    "summary": "Search the catalogue",
+    "description": "As a member, I want to search books by title, so that I can find what to borrow.",
+    "requirements": ["REQ-BOOK-1", "REQ-UI-2"]
+  },
+  {
+    "key": "SHELF-3",
+    "summary": "Borrow a book",
+    "description": "As a member, I want to borrow a book and know when it is due, so that I can read it at home.",
+    "requirements": ["REQ-LOAN-1", "REQ-LOAN-2", "REQ-LOAN-3", "REQ-UI-1"]
+  },
+  {
+    "key": "SHELF-4",
+    "summary": "Return a book and pay late fees",
+    "description": "As a member, I want to return books and see any late fee, so that my account stays clear.",
+    "requirements": ["REQ-LOAN-4", "REQ-FEE-1"]
+  },
+  {
+    "key": "SHELF-5",
+    "summary": "See my loans",
+    "description": "As a member, I want to see the books I currently have, so that I know what to return.",
+    "requirements": ["REQ-LIST-1"]
+  }
+]
