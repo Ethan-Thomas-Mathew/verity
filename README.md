@@ -71,7 +71,7 @@ Shelf runs at http://127.0.0.1:8001. Switch its bugs with `SHELF_BUGS=all`, `non
 
 ## Evaluation
 
-`uv run verity eval --shelf-database-url postgresql+psycopg://verity:verity@127.0.0.1:5433/shelf`
+`uv run verity eval --shelf-database-url postgresql+psycopg://verity:verity@127.0.0.1:5433/shelf_test`
 runs every story against Shelf with all bugs on, then with none, and scores the
 bug reports against `eval/ground_truth.json`:
 
