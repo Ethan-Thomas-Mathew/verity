@@ -100,7 +100,7 @@ Recorded in [docs/adr](docs/adr/README.md). The main ones:
 
 ## Testing and quality
 
-- 56 tests: unit, integration against real PostgreSQL, browser tests in Chromium, the exported pytest suite and the Postman collection run in Newman against both builds.
+- 60 tests: unit, integration against real PostgreSQL, browser tests in Chromium, the exported pytest suite and the Postman collection run in Newman against both builds.
 - 92% line and branch coverage; CI fails below 85%.
 - Ruff lint and format, mypy in strict mode on code and tests.
 - CI also builds the Docker image and smoke-tests the Compose stack.

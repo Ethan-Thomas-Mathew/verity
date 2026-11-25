@@ -41,7 +41,7 @@ The rule behind it: **the model writes, code decides.** A model reads text and w
 - `src/verity/api/`: the REST API. `src/verity/cli.py`: the command line.
 - `src/verity/evaluation.py`: scoring against the planted bugs.
 - `migrations/`: Alembic database migrations.
-- `tests/`: 56 tests. `tests/shelf/test_requirements.py` proves the answer key.
+- `tests/`: 60 tests. `tests/shelf/test_requirements.py` proves the answer key.
 
 ## Part 4: Interview questions
 
