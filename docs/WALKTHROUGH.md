@@ -70,4 +70,3 @@ Bug-finding with a real model is not measured yet, and Shelf is small with bugs 
 
 - Built with AI-assisted development (Claude Code). Be ready to explain each part above in your own words.
 - Hosted providers (Gemini, OpenAI, Claude) are tested against mocked HTTP responses, not live APIs.
-- There is no Selenium, Java, Jira integration or SQL Server here. Exports produce Jira's CSV format; nothing connects to a Jira account.
