@@ -1,5 +1,5 @@
 # One image runs Shelf, the Verity API and the migrations, with different commands.
-FROM ghcr.io/astral-sh/uv:0.11.32 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.10 AS uv
 
 FROM python:3.12-slim-bookworm
 COPY --from=uv /uv /usr/local/bin/uv
