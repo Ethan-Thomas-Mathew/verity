@@ -8,9 +8,29 @@ so a confused or manipulated model cannot run arbitrary code on this machine.
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 Scalar = str | int | float | bool | None
+
+# Small models often describe a field's type instead of its expected value.
+TYPE_NAMES = frozenset(
+    {
+        "int",
+        "integer",
+        "str",
+        "string",
+        "float",
+        "number",
+        "bool",
+        "boolean",
+        "date",
+        "datetime",
+        "list",
+        "array",
+        "dict",
+        "object",
+    }
+)
 
 REQUIREMENT_PATTERN = r"^REQ-[A-Z]+-\d+$"
 RequirementId = Annotated[str, Field(pattern=REQUIREMENT_PATTERN)]
@@ -26,6 +46,20 @@ class Expect(BaseModel):
     length: int | None = Field(
         default=None, ge=0, description="Expected length when the body is a JSON list."
     )
+
+    @field_validator("fields")
+    @classmethod
+    def _values_not_types(cls, fields: dict[str, Scalar]) -> dict[str, Scalar]:
+        typed = sorted(
+            k for k, v in fields.items() if isinstance(v, str) and v.lower() in TYPE_NAMES
+        )
+        if typed:
+            raise ValueError(
+                f"fields {typed} give a type name, not a value. Put the exact value the "
+                'requirement promises (for example "loan limit reached" or 1), or leave the '
+                "field out to skip checking it"
+            )
+        return fields
 
 
 class ApiStep(BaseModel):
@@ -62,6 +96,16 @@ class UiAction(BaseModel):
         description="goto: page path. fill: the field's label. click: the button's text.",
     )
     value: str = Field(default="", description="fill: text to type. expect_*: text to look for.")
+
+    @model_validator(mode="after")
+    def _has_what_it_needs(self) -> "UiAction":
+        if self.action in ("goto", "fill", "click") and not self.target.strip():
+            raise ValueError(
+                f"{self.action} needs a target (page path, field label or button text)"
+            )
+        if self.action != "goto" and self.action != "click" and not self.value.strip():
+            raise ValueError(f"{self.action} needs a value")
+        return self
 
 
 class UiTest(BaseModel):

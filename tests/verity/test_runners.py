@@ -187,3 +187,55 @@ def test_ui_missing_field_is_an_error(fixed_url: str, browser_executable: str | 
         result = ui.run(test)
     assert result.outcome == "error"
     assert result.detail.startswith("element not found")
+
+
+def test_type_names_as_expected_values_are_rejected() -> None:
+    with pytest.raises(ValidationError, match="type name"):
+        ApiStep.model_validate(
+            {"method": "POST", "path": "/x", "expect": {"status": 201, "fields": {"id": "int"}}}
+        )
+
+
+def test_ui_actions_need_their_target_and_value() -> None:
+    with pytest.raises(ValidationError, match="fill needs a target"):
+        UiTest.model_validate(
+            {
+                "requirement_id": "REQ-UI-1",
+                "title": "t",
+                "steps": [{"action": "fill", "value": "Member ID: 1"}],
+            }
+        )
+    with pytest.raises(ValidationError, match="expect_text needs a value"):
+        UiTest.model_validate(
+            {"requirement_id": "REQ-UI-1", "title": "t", "steps": [{"action": "expect_text"}]}
+        )
+
+
+def test_malformed_request_is_an_error_but_a_rule_violation_is_a_failure(fixed_url: str) -> None:
+    def single(body: dict[str, str] | None, status: int) -> ApiTest:
+        return ApiTest.model_validate(
+            {
+                "requirement_id": "REQ-MEM-1",
+                "title": "t",
+                "steps": [
+                    {
+                        "method": "POST",
+                        "path": "/api/members",
+                        "body": body,
+                        "expect": {"status": status},
+                    }
+                ],
+            }
+        )
+
+    with httpx.Client() as http:
+        runner = ApiRunner(http, fixed_url)
+        # No body at all: FastAPI rejects the format, so the test is broken.
+        missing = runner.run(single(None, 201))
+        # A valid body the app refuses by its own rule: a real failure.
+        refused = runner.run(single({"name": "A", "email": "not-an-email"}, 201))
+        # Expecting the rule's 422 passes.
+        expected = runner.run(single({"name": "A", "email": "not-an-email"}, 422))
+    assert missing.outcome == "error" and "rejected the request format" in missing.detail
+    assert refused.outcome == "failed"
+    assert expected.outcome == "passed"

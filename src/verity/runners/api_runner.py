@@ -71,6 +71,21 @@ def _same(expected: Scalar, actual: Any) -> bool:
     return bool(expected == actual)
 
 
+def _format_rejected(response: httpx.Response) -> bool:
+    """A 422 listing field errors: FastAPI's reply when a body is missing or malformed.
+
+    The app's own rule violations (such as an invalid email) return 422 with a
+    message string instead, so they still count as real test failures.
+    """
+    if response.status_code != 422:
+        return False
+    try:
+        detail = response.json().get("detail")
+    except (json.JSONDecodeError, AttributeError):
+        return False
+    return isinstance(detail, list)
+
+
 class ApiRunner:
     def __init__(self, http: httpx.Client, base_url: str) -> None:
         self._http, self._base = http, base_url.rstrip("/")
@@ -120,6 +135,10 @@ class ApiRunner:
     @staticmethod
     def _check(number: int, step: ApiStep, response: httpx.Response) -> None:
         where = f"step {number} ({step.method} {step.path})"
+        if response.status_code != step.expect.status and _format_rejected(response):
+            # The app refused the request's shape before applying any rule, so the
+            # test is broken. Reporting this as a bug in the app would be false.
+            raise SpecError(f"{where}: the app rejected the request format: {response.text[:200]}")
         if response.status_code != step.expect.status:
             raise ExpectationFailed(
                 f"{where}: expected status {step.expect.status}, got {response.status_code}; "

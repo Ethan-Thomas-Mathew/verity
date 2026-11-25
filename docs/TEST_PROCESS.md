@@ -24,6 +24,6 @@
 | --- | --- | --- |
 | passed | The app did what the requirement says | No |
 | failed | The app answered differently from the requirement | Yes |
-| error | The test itself was broken (unknown field label, variable never saved) | No; the repair agent may fix it once |
+| error | The test itself was broken: unknown field label, variable never saved, or a request the app rejected for its format (a 422 listing missing or invalid fields) | No; the repair agent may fix it once |
 
 Keeping "error" separate from "failed" keeps broken tests from being reported as bugs in the application.
