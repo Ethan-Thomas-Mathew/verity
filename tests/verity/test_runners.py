@@ -239,3 +239,29 @@ def test_malformed_request_is_an_error_but_a_rule_violation_is_a_failure(fixed_u
     assert missing.outcome == "error" and "rejected the request format" in missing.detail
     assert refused.outcome == "failed"
     assert expected.outcome == "passed"
+
+
+def test_placeholders_must_be_saved_names() -> None:
+    def plan(path: str, save: dict[str, str] | None = None) -> dict[str, object]:
+        first = {"method": "POST", "path": "/api/members", "expect": {"status": 201}}
+        if save:
+            first["save"] = save
+        return {
+            "requirement_id": "REQ-LOAN-4",
+            "title": "t",
+            "steps": [first, {"method": "GET", "path": path, "expect": {"status": 200}}],
+        }
+
+    with pytest.raises(ValidationError, match="not a plain name"):
+        ApiTest.model_validate(plan("/api/loans/{{save.loan_id}}/fee", {"loan_id": "id"}))
+    with pytest.raises(ValidationError, match="used before any step saves it"):
+        ApiTest.model_validate(plan("/api/loans/{{loan}}/fee"))
+    assert ApiTest.model_validate(plan("/api/loans/{{loan}}/fee", {"loan": "id"}))
+    with pytest.raises(ValidationError, match="used before any step saves it"):
+        UiTest.model_validate(
+            {
+                "requirement_id": "REQ-UI-1",
+                "title": "t",
+                "steps": [{"action": "fill", "target": "Member ID", "value": "{{m}}"}],
+            }
+        )

@@ -6,6 +6,8 @@ requests to the target app and drive its pages with a fixed set of actions,
 so a confused or manipulated model cannot run arbitrary code on this machine.
 """
 
+import json
+import re
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -33,6 +35,8 @@ TYPE_NAMES = frozenset(
 )
 
 REQUIREMENT_PATTERN = r"^REQ-[A-Z]+-\d+$"
+PLACEHOLDER = re.compile(r"\{\{(.*?)\}\}")
+NAME = re.compile(r"^\s*(\w+)\s*$")
 RequirementId = Annotated[str, Field(pattern=REQUIREMENT_PATTERN)]
 
 
@@ -83,10 +87,38 @@ class ApiStep(BaseModel):
         return path
 
 
+def _check_placeholders(where: str, value: Any, saved: set[str]) -> None:
+    """Every {{name}} must be a plain name saved by an earlier step."""
+    for inner in PLACEHOLDER.findall(json.dumps(value)):
+        name = NAME.match(inner)
+        if name is None:
+            raise ValueError(
+                f"{where}: placeholder {{{{{inner}}}}} is not a plain name; "
+                "save a value first, then write {{name}}"
+            )
+        if name.group(1) not in saved:
+            raise ValueError(
+                f"{where}: {{{{{name.group(1)}}}}} is used before any step saves it "
+                f'(add "save": {{"{name.group(1)}": "id"}} to an earlier step)'
+            )
+
+
+def _check_steps(steps: list["ApiStep"], saved: set[str], label: str) -> set[str]:
+    for number, step in enumerate(steps, start=1):
+        _check_placeholders(f"{label} {number}", [step.path, step.params, step.body], saved)
+        saved |= set(step.save)
+    return saved
+
+
 class ApiTest(BaseModel):
     requirement_id: RequirementId
     title: str = Field(max_length=200)
     steps: list[ApiStep] = Field(min_length=1, max_length=12)
+
+    @model_validator(mode="after")
+    def _variables_saved_before_use(self) -> "ApiTest":
+        _check_steps(self.steps, set(), "step")
+        return self
 
 
 class UiAction(BaseModel):
@@ -117,6 +149,13 @@ class UiTest(BaseModel):
         description="API calls that prepare data first, e.g. registering a member.",
     )
     steps: list[UiAction] = Field(min_length=1, max_length=15)
+
+    @model_validator(mode="after")
+    def _variables_saved_before_use(self) -> "UiTest":
+        saved = _check_steps(self.setup, set(), "setup step")
+        for number, action in enumerate(self.steps, start=1):
+            _check_placeholders(f"step {number}", [action.target, action.value], saved)
+        return self
 
 
 class TestPlan(BaseModel):

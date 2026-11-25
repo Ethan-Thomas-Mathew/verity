@@ -121,7 +121,9 @@ def test_review_and_exports(api: tuple[TestClient, FakeModel]) -> None:
 
 def test_cannot_approve_a_test_that_errored(api: tuple[TestClient, FakeModel]) -> None:
     client, model = api
-    broken = {**LIMIT, "steps": LIMIT["steps"][1:]}  # uses {{m}} without saving it
+    # Saves {{m}} from a field the response does not have, so the test cannot run.
+    broken = json.loads(json.dumps(LIMIT))
+    broken["steps"][0]["save"] = {"m": "member_id"}
     model.plans = [{"api_tests": [broken], "ui_tests": []}] * 2
     model.repair = None  # the repair returns "null", which fails validation
     client.post("/requirements/index")

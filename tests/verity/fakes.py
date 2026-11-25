@@ -44,13 +44,17 @@ AVAILABILITY = {
     "title": "Last copy",
     "steps": [member_step(), loan_step(2), loan_step(2, 409, detail="no copies available")],
 }
-# Broken on purpose: uses {{m}} without saving it. The repair agent should fix it.
+# Broken on purpose: saves {{m}} from a field the response does not have
+# ("member_id" instead of "id"). The repair agent should fix the save.
 DUE_BROKEN = {
     "requirement_id": "REQ-LOAN-3",
     "title": "Due in 14 days",
-    "steps": [loan_step(1, 201, due_on="2026-01-15")],
+    "steps": [
+        {**member_step(), "save": {"m": "member_id"}},
+        loan_step(1, 201, due_on="2026-01-15"),
+    ],
 }
-DUE_FIXED = {**DUE_BROKEN, "steps": [member_step(), *DUE_BROKEN["steps"]]}
+DUE_FIXED = {**DUE_BROKEN, "steps": [member_step(), DUE_BROKEN["steps"][1]]}
 UI = {
     "requirement_id": "REQ-UI-1",
     "title": "Refused loan shows an error",
