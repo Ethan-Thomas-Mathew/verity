@@ -20,8 +20,13 @@ COPY eval/ground_truth.json ./eval/ground_truth.json
 COPY src ./src
 RUN uv sync --frozen --no-dev
 
-# Chromium and the system libraries it needs, for UI tests.
-RUN playwright install --with-deps chromium && chmod -R a+rX /ms-playwright
+# Chromium and the system libraries it needs, for UI tests. Playwright's own
+# Node.js runtime needs libatomic1, which the slim image leaves out.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && playwright install --with-deps chromium \
+    && chmod -R a+rX /ms-playwright
 
 RUN useradd --create-home --uid 10001 verity && chown -R verity /app
 USER verity
