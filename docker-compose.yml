@@ -63,6 +63,10 @@ services:
       VERITY_ANTHROPIC_API_KEY: ${VERITY_ANTHROPIC_API_KEY:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      # Evaluation reports and recorded model replies land in the project folder.
+      - ./eval/results:/app/eval/results
+      - ./eval/recordings:/app/eval/recordings
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:

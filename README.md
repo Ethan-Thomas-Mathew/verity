@@ -38,17 +38,18 @@ The agents are nodes in a [LangGraph](https://github.com/langchain-ai/langgraph)
 
 ## Quick start
 
-Needs Docker, [uv](https://docs.astral.sh/uv/) and, for a local model, [Ollama](https://ollama.com).
+Needs Docker and [Ollama](https://ollama.com). Everything else runs in containers.
 
 ```bash
 ollama pull qwen2.5:7b
 ollama pull nomic-embed-text
-uv sync
-uv run python scripts/bootstrap.py   # Postgres + Shelf in Docker, migrate, Chromium, index
-uv run verity stories
-uv run verity run SHELF-3            # plan, test and report on "Borrow a book"
-uv run verity serve                  # REST API at http://127.0.0.1:8000/docs
+python scripts/bootstrap.py                                  # build, start Postgres + Shelf, migrate, index
+docker compose --profile full run --rm api verity stories
+docker compose --profile full run --rm api verity run SHELF-3   # plan, test and report on "Borrow a book"
+docker compose --profile full up -d api                      # REST API at http://127.0.0.1:8000/docs
 ```
+
+For development on the host instead, `uv sync` and run the same commands as `uv run verity ...`.
 
 To use a hosted model, set `VERITY_LLM_PROVIDER` to `gemini`, `openai` or `anthropic` and the matching `VERITY_*_API_KEY` in `.env` (see `.env.example`). Nothing needs a key by default.
 
@@ -71,7 +72,11 @@ Shelf runs at http://127.0.0.1:8001. Switch its bugs with `SHELF_BUGS=all`, `non
 
 ## Evaluation
 
-`uv run verity eval --shelf-database-url postgresql+psycopg://verity:verity@127.0.0.1:5433/shelf_test`
+```bash
+docker compose --profile full run --rm -e VERITY_RECORD_DIR=eval/recordings api \
+  verity eval --shelf-database-url postgresql+psycopg://verity:verity@postgres:5432/shelf_test
+```
+
 runs every story against Shelf with all bugs on, then with none, and scores the
 bug reports against `eval/ground_truth.json`:
 

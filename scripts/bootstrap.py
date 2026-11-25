@@ -1,16 +1,17 @@
 """One-command setup: `uv run python scripts/bootstrap.py`.
 
-Starts Postgres and Shelf in Docker, migrates the database, installs Chromium
-for the UI tests, and indexes the requirements if Ollama is running.
-Works the same on Windows, macOS and Linux.
+Everything runs inside Docker, so the same steps work on Windows, macOS and
+Linux, including Windows machines where Smart App Control blocks Python's
+compiled extensions on the host. Ollama runs on the host; the containers reach
+it at host.docker.internal.
 """
 
 import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
-
-import httpx
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,6 +23,14 @@ def step(title: str, command: list[str]) -> None:
         sys.exit(f"failed: {title} (exit code {result.returncode})")
 
 
+def ollama_running() -> bool:
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=3):
+            return True
+    except (urllib.error.URLError, TimeoutError):
+        return False
+
+
 def main() -> None:
     if shutil.which("docker") is None:
         sys.exit("Docker is not installed or not on PATH. Install Docker Desktop first.")
@@ -30,23 +39,22 @@ def main() -> None:
         shutil.copy(ROOT / ".env.example", env_file)
         print("created .env from .env.example")
     step(
-        "Start Postgres and Shelf", ["docker", "compose", "up", "-d", "--wait", "postgres", "shelf"]
+        "Build and start Postgres and Shelf",
+        ["docker", "compose", "up", "-d", "--build", "--wait", "postgres", "shelf"],
     )
-    step("Migrate the database", [sys.executable, "-m", "alembic", "upgrade", "head"])
-    step(
-        "Install Chromium for UI tests", [sys.executable, "-m", "playwright", "install", "chromium"]
-    )
-    try:
-        httpx.get("http://127.0.0.1:11434/api/tags", timeout=3).raise_for_status()
-    except httpx.HTTPError:
+    step("Migrate the database", ["docker", "compose", "run", "--rm", "migrate"])
+    if not ollama_running():
         print(
             "\nOllama is not running, so requirements were not indexed yet.\n"
-            "Install it from https://ollama.com, then run:\n"
-            "  ollama pull qwen2.5:7b\n  ollama pull nomic-embed-text\n  uv run verity index"
+            "Start the Ollama app, then run:\n"
+            "  docker compose --profile full run --rm api verity index"
         )
         return
-    step("Index requirements", [sys.executable, "-m", "verity.cli", "index"])
-    print("\nReady. Try: uv run verity run SHELF-3")
+    step(
+        "Index requirements",
+        ["docker", "compose", "--profile", "full", "run", "--rm", "api", "verity", "index"],
+    )
+    print("\nReady. Try: docker compose --profile full run --rm api verity run SHELF-3")
 
 
 if __name__ == "__main__":
